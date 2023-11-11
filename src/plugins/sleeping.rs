@@ -80,6 +80,7 @@ fn mark_sleeping_bodies(
 
         // If the body has been still for long enough, set it to sleep and reset velocities.
         if time_sleeping.0 > deactivation_time.0 {
+            debug!("Sleeping {:?} after {}", entity, time_sleeping.0);
             commands.entity(entity).insert(Sleeping);
             *lin_vel = LinearVelocity::ZERO;
             *ang_vel = AngularVelocity::ZERO;
@@ -107,6 +108,8 @@ fn wake_on_changed(
     mut bodies: Query<(Entity, &mut TimeSleeping), (With<Sleeping>, WokeUpFilter)>,
 ) {
     for (entity, mut time_sleeping) in &mut bodies {
+        // TODO: figure out which one.
+        debug!("Waking {:?} due to external change", entity);
         commands.entity(entity).remove::<Sleeping>();
         time_sleeping.0 = 0.0;
     }
@@ -138,6 +141,7 @@ fn wake_on_collider_removed(
         }));
     for collider_parent in child_colliders.iter().chain(removed_colliders_iter) {
         if let Ok((entity, mut time_sleeping)) = bodies.get_mut(collider_parent.get()) {
+            debug!("Waking {:?} because all coliders have been removed", entity);
             commands.entity(entity).remove::<Sleeping>();
             time_sleeping.0 = 0.0;
         }
@@ -151,6 +155,11 @@ fn wake_all_sleeping_bodies(
     mut bodies: Query<(Entity, &mut TimeSleeping), With<Sleeping>>,
 ) {
     for (entity, mut time_sleeping) in &mut bodies {
+        debug!(
+            "Waking {:?} along with everything else (possibly due to gravity change)",
+            entity
+        );
+
         commands.entity(entity).remove::<Sleeping>();
         time_sleeping.0 = 0.0;
     }
@@ -174,6 +183,14 @@ fn wake_on_collision_ended(
             }
         });
         if colliding_entities.any(|entity| moved_bodies.contains(entity)) {
+            // TODO: actually show the body or bodies that moved
+            debug!(
+                "Waking {:?} because a colliding entity {:?} has moved.",
+                entity,
+                colliding_entities
+                    .filter(|entity| moved_bodies.contains(*entity))
+                    .collect::<Vec<_>>()
+            );
             commands.entity(entity).remove::<Sleeping>();
             time_sleeping.0 = 0.0;
         }
@@ -185,10 +202,18 @@ fn wake_on_collision_ended(
             continue;
         }
         if let Ok((_, mut time_sleeping)) = sleeping.get_mut(contacts.entity1) {
+            debug!(
+                "Waking {:?} because a collision with {:?} has ended.",
+                contacts.entity1, contacts.entity2,
+            );
             commands.entity(contacts.entity1).remove::<Sleeping>();
             time_sleeping.0 = 0.0;
         }
         if let Ok((_, mut time_sleeping)) = sleeping.get_mut(contacts.entity2) {
+            debug!(
+                "Waking {:?} because a collision with {:?} has ended.",
+                contacts.entity2, contacts.entity1,
+            );
             commands.entity(contacts.entity2).remove::<Sleeping>();
             time_sleeping.0 = 0.0;
         }

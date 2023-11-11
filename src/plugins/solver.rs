@@ -150,8 +150,16 @@ fn penetration_constraints(
 
             // When an active body collides with a sleeping body, wake up the sleeping body.
             if sleeping1.is_some() {
+                debug!(
+                    "Waking {:?} because it collided with {:?}.",
+                    body1.entity, body2.entity
+                );
                 commands.entity(body1.entity).remove::<Sleeping>();
             } else if sleeping2.is_some() {
+                debug!(
+                    "Waking {:?} because it collided with {:?}.",
+                    body2.entity, body1.entity
+                );
                 commands.entity(body2.entity).remove::<Sleeping>();
             }
 
@@ -268,6 +276,15 @@ pub fn solve_constraint<C: XpbdConstraint<ENTITY_COUNT> + Component, const ENTIT
             // At least one of the participating bodies is active, so wake up any sleeping bodies
             for (body, sleeping) in &bodies {
                 if sleeping.is_some() {
+                    debug!(
+                        "Waking {:?} to solve constraint {:?}.",
+                        body.entity,
+                        if body.entity == constraint.entities()[0] {
+                            constraint.entities()[1]
+                        } else {
+                            constraint.entities()[0]
+                        }
+                    );
                     commands.entity(body.entity).remove::<Sleeping>();
                 }
             }
