@@ -28,6 +28,7 @@ pub struct RigidBodyQuery {
     pub restitution: &'static Restitution,
     pub locked_axes: Option<&'static LockedAxes>,
     pub dominance: Option<&'static Dominance>,
+    pub name: Option<&'static Name>,
 }
 
 impl<'w> RigidBodyQueryItem<'w> {
@@ -81,6 +82,13 @@ impl<'w> RigidBodyQueryItem<'w> {
             i8::MAX
         } else {
             self.dominance.map_or(0, |dominance| dominance.0)
+        }
+    }
+
+    pub fn debug_id(&self) -> String {
+        match self.name {
+            Some(n) => format!("{:?} ({n})", self.entity),
+            None => format!("{:?}", self.entity),
         }
     }
 }
