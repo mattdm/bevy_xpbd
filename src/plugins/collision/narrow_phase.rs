@@ -128,6 +128,8 @@ pub fn collect_collisions(
                             ),
                         };
 
+                        trace!("Collision between {:?} and {:?}", *entity1, *entity2);
+
                         if !contacts.manifolds.is_empty() {
                             new_collisions.push(contacts);
                         }
@@ -170,6 +172,8 @@ pub fn collect_collisions(
                         narrow_phase_config.prediction_distance,
                     ),
                 };
+
+                trace!("Collision between {:?} and {:?}", *entity1, *entity2);
 
                 if !contacts.manifolds.is_empty() {
                     collisions.insert_collision_pair(contacts);

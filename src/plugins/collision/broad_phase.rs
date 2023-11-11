@@ -257,6 +257,8 @@ fn sweep_and_prune(
             }
 
             broad_collision_pairs.push((*ent1, *ent2));
+            // It'd be nice to have Name available here...
+            trace!("Potential collision between {:?} and {:?}", *ent1, *ent2);
         }
     }
 }
