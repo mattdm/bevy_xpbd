@@ -94,21 +94,6 @@ impl<'w> RigidBodyQueryItem<'w> {
 }
 
 #[derive(WorldQuery)]
-pub(crate) struct DebugIdQuery {
-    pub entity: Entity,
-    pub name: Option<&'static Name>,
-}
-
-impl<'w> DebugIdQueryItem<'w> {
-    pub fn debug_id(&self) -> String {
-        match self.name {
-            Some(n) => format!("{:?} ({n})", self.entity),
-            None => format!("{:?}", self.entity),
-        }
-    }
-}
-
-#[derive(WorldQuery)]
 #[world_query(mutable)]
 pub(crate) struct MassPropertiesQuery {
     pub mass: &'static mut Mass,

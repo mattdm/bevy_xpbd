@@ -32,6 +32,7 @@ impl Plugin for IntegratorPlugin {
 }
 
 type PosIntegrationComponents = (
+    Entity,
     &'static RigidBody,
     &'static Position,
     &'static mut PreviousPosition,
@@ -48,27 +49,25 @@ type PosIntegrationComponents = (
 /// Explicitly integrates the positions and linear velocities of bodies taking only external forces
 /// like gravity into account. This acts as a prediction for the next positions of the bodies.
 fn integrate_pos(
-    mut bodies: Query<(PosIntegrationComponents, DebugIdQuery), Without<Sleeping>>,
+    mut bodies: Query<PosIntegrationComponents, Without<Sleeping>>,
     gravity: Res<Gravity>,
     time: Res<Time>,
 ) {
     let delta_secs = time.delta_seconds_adjusted();
 
     for (
-        (
-            rb,
-            pos,
-            mut prev_pos,
-            mut translation,
-            mut lin_vel,
-            lin_damping,
-            gravity_scale,
-            external_force,
-            mass,
-            inv_mass,
-            locked_axes,
-        ),
-        debug_id,
+        entity,
+        rb,
+        pos,
+        mut prev_pos,
+        mut translation,
+        mut lin_vel,
+        lin_damping,
+        gravity_scale,
+        external_force,
+        mass,
+        inv_mass,
+        locked_axes,
     ) in &mut bodies
     {
         prev_pos.0 = pos.0;
@@ -102,12 +101,13 @@ fn integrate_pos(
         if lin_vel.0 != Vector::ZERO {
             let delta = locked_axes.apply_to_vec(delta_secs * lin_vel.0);
             translation.0 += delta;
-            trace!("{} translated by {}", debug_id.debug_id(), delta);
+            trace!("{:?} translated by {}", entity, delta);
         }
     }
 }
 
 type RotIntegrationComponents = (
+    Entity,
     &'static RigidBody,
     &'static mut Rotation,
     &'static mut PreviousRotation,
@@ -123,26 +123,21 @@ type RotIntegrationComponents = (
 /// Explicitly integrates the rotations and angular velocities of bodies taking only external torque into account.
 /// This acts as a prediction for the next rotations of the bodies.
 #[cfg(feature = "2d")]
-fn integrate_rot(
-    mut bodies: Query<(RotIntegrationComponents, DebugIdQuery), Without<Sleeping>>,
-    time: Res<Time>,
-) {
+fn integrate_rot(mut bodies: Query<RotIntegrationComponents, Without<Sleeping>>, time: Res<Time>) {
     let delta_secs = time.delta_seconds_adjusted();
 
     for (
-        (
-            rb,
-            mut rot,
-            mut prev_rot,
-            mut ang_vel,
-            ang_damping,
-            external_force,
-            external_torque,
-            _inertia,
-            inv_inertia,
-            locked_axes,
-        ),
-        debug_id,
+        entity,
+        rb,
+        mut rot,
+        mut prev_rot,
+        mut ang_vel,
+        ang_damping,
+        external_force,
+        external_torque,
+        _inertia,
+        inv_inertia,
+        locked_axes,
     ) in &mut bodies
     {
         prev_rot.0 = *rot;
@@ -178,7 +173,7 @@ fn integrate_rot(
         let delta = locked_axes.apply_to_angular_velocity(delta_secs * ang_vel.0);
         if delta != 0.0 {
             *rot += Rotation::from_radians(delta);
-            trace!("{} rotated by {}", debug_id.debug_id(), delta);
+            trace!("{:?} rotated by {}", entity, delta);
         }
     }
 }
@@ -186,26 +181,21 @@ fn integrate_rot(
 /// Explicitly integrates the rotations and angular velocities of bodies taking only external torque into account.
 /// This acts as a prediction for the next rotations of the bodies.
 #[cfg(feature = "3d")]
-fn integrate_rot(
-    mut bodies: Query<(RotIntegrationComponents, DebugIdQuery), Without<Sleeping>>,
-    time: Res<Time>,
-) {
+fn integrate_rot(mut bodies: Query<RotIntegrationComponents, Without<Sleeping>>, time: Res<Time>) {
     let delta_secs = time.delta_seconds_adjusted();
 
     for (
-        (
-            rb,
-            mut rot,
-            mut prev_rot,
-            mut ang_vel,
-            ang_damping,
-            external_force,
-            external_torque,
-            inertia,
-            inv_inertia,
-            locked_axes,
-        ),
-        debug_id,
+        entity,
+        rb,
+        mut rot,
+        mut prev_rot,
+        mut ang_vel,
+        ang_damping,
+        external_force,
+        external_torque,
+        inertia,
+        inv_inertia,
+        locked_axes,
     ) in &mut bodies
     {
         prev_rot.0 = *rot;
@@ -248,12 +238,13 @@ fn integrate_rot(
         let delta = Quaternion::from_vec4(effective_dq);
         if delta != Quaternion::IDENTITY {
             rot.0 = (rot.0 + delta).normalize();
-            trace!("{} rotated by {}", debug_id.debug_id(), delta);
+            trace!("{:?} rotated by {}", entity, delta);
         }
     }
 }
 
 type ImpulseQueryComponents = (
+    Entity,
     &'static RigidBody,
     &'static mut ExternalImpulse,
     &'static mut ExternalAngularImpulse,
@@ -265,20 +256,18 @@ type ImpulseQueryComponents = (
     Option<&'static LockedAxes>,
 );
 
-fn apply_impulses(mut bodies: Query<(ImpulseQueryComponents, DebugIdQuery), Without<Sleeping>>) {
+fn apply_impulses(mut bodies: Query<ImpulseQueryComponents, Without<Sleeping>>) {
     for (
-        (
-            rb,
-            impulse,
-            ang_impulse,
-            mut lin_vel,
-            mut ang_vel,
-            rotation,
-            inv_mass,
-            inv_inertia,
-            locked_axes,
-        ),
-        debug_id,
+        entity,
+        rb,
+        impulse,
+        ang_impulse,
+        mut lin_vel,
+        mut ang_vel,
+        rotation,
+        inv_mass,
+        inv_inertia,
+        locked_axes,
     ) in &mut bodies
     {
         if !rb.is_dynamic() {
@@ -297,19 +286,11 @@ fn apply_impulses(mut bodies: Query<(ImpulseQueryComponents, DebugIdQuery), With
 
         if delta_lin_vel != Vector::ZERO {
             lin_vel.0 += delta_lin_vel;
-            trace!(
-                "{} (Impulse) translated by {}",
-                debug_id.debug_id(),
-                delta_lin_vel
-            );
+            trace!("{:?} (Impulse) translated by {}", entity, delta_lin_vel);
         }
         if delta_ang_vel != AngularVelocity::ZERO.0 {
             ang_vel.0 += delta_ang_vel;
-            trace!(
-                "{} (Impulse) translated by {}",
-                debug_id.debug_id(),
-                delta_ang_vel
-            );
+            trace!("{:?} (Impulse) translated by {}", entity, delta_ang_vel);
         }
     }
 }
